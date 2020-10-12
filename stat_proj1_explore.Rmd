@@ -1,0 +1,132 @@
+---
+title: "STAT 6021 Project 1"
+author: "Arne Newman"
+date: "10/11/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+
+Start by loading in the dataset and exploring it
+```{r}
+setwd("C:/Users/newma/Data_v1/stat6021/project1")
+data <- read.csv("diamonds4.csv", header=TRUE)
+attach(data)
+names(data)
+str(data)
+```
+
+Potential analyses to consider:
+
+* Develop an appropriate model to predict the price of diamonds.
+  + Test assumptions along the way. Expect errors associated w/ carats to be correlated 
+  due to the just above/just below pricing dynamics for integers and half-integers
+  + Simplify the model to the greatest extent possible for ease of use and interpretation.
+  + Start with SLRs
+  + Generate scatterplot matrix/heat map to assess correlations between variables
+  + Progress to MLR (with indicators)
+* Determine the variable with the greatest impact on price. 
+* Assess multicollinearity. 
+* Assess interaction between variables. 
+
+Things we will need to do:
+
+* Consider grouping, at least for clarity; goes from 8 to 5 that way (3 of the 11
+listed on the website are not in the dataset)
+* Relationships not linear - need to scale when (e.g., curvature in price vs carat)
+* May need to scale - variance probably increases significantly as carats increases
+(and possibly other variables)
+* Need to assess what to do about outliers
+* Consider how relationships change at various quality measurements, price points, etc. 
+(e.g., very different slope for price vs carat between 0 and 2 carats vs 3-5)
+
+
+##Variable Descriptions
+###Carat
+Carat is a measurement of weight, and the site notes that it is generally the highest
+price driver. The website notes that it is recommended to save money by selecting a
+carat just below a whole or half number, such as 1.9 instead of 2 carats. 
+
+###Clarity
+In descending order, the Blue Nile site shows 6 groupings of 11 clarity scores:
+
+* I1, I2, I3 Included Diamonds
+* SI1, SI2 Slightly Included (SI) Diamonds
+* VS1, VS2 Very Slightly Included (VS) Diamonds
+* VVS1, VVS2 Very, Very Slightly Included (VVS) Diamonds
+* Internally Flawless (IF) Diamonds
+* Flawless (FL) Diamonds
+
+###Color
+The GIA diamond color grades range from D (colorless) to Z (light yellow or brown). Less color, thus
+lower letters in the alphabet, are considered better. 
+
+###Cut 
+Ideal: This rare cut represents roughly the top 3% of diamond cut quality. It reflects most of the light that enters the diamond.
+
+Very Good: This cut represents roughly the top 15% of diamond cut quality. It reflects nearly as much light as the ideal cut, but for a lower price.
+
+Good: This cut represents roughly the top 25% of diamond cut quality. It reflects most of the light that enters, but not as much as a Very Good cut grade.
+
+Astor by Blue Nile™: These diamonds are crafted to gather and reflect the most light possible. Cut from the finest raw material (rough stones with as few impurities or inclusions as possible), they meet rigorous quality requirements and exhibit outstanding brilliance, fire, and scintillation. In addition to being graded by the GIA, all Astor by Blue Nile™ diamonds are certified by GemEx®
+
+Look at price vs carats, grouping by cut with linear regression lines
+
+```{r}
+#Break the data into by cut
+d1_cut<-subset(data,cut=="Good") 
+d2_cut<-subset(data,cut=="Very Good") 
+d3_cut<-subset(data,cut=="Ideal")
+d4_cut<-subset(data,cut=="Astor Ideal")
+```
+
+Generate regression lines for each race
+```{r}
+##fit 3 separate regressions, one for each region
+reg1_cut<-lm(price~carat,data=d1_cut)
+reg2_cut<-lm(price~carat,data=d2_cut)
+reg3_cut<-lm(price~carat,data=d3_cut)
+reg4_cut<-lm(price~carat,data=d4_cut)
+```
+
+```{r}
+par(mfrow=c(1,1))
+#plot(price~clarity, main = "Price against Clarity")
+#plot(price~color, main="Price against Color")
+#plot(price~carat, main="Price against Cut")
+plot(carat,price, main="Price against Carats, by Cut", ylim=c(0,100000))
+points(d2_cut$carat,d2_cut$price, pch=2, col="red") 
+points(d3_cut$carat,d3_cut$price, pch=12, col="blue")
+points(d4_cut$carat,d4_cut$price, pch=8, col="green")
+abline(reg1_cut,lty=1)
+abline(reg2_cut,lty=2, col="red") 
+abline(reg3_cut,lty=3, col="blue")
+abline(reg4_cut,lty=4, col="green")
+legend("topleft", c("Good","Very Good","Ideal", "Astor Ideal"), lty=c(1,2,3,4), pch=c(1,2,12,8), col=c("black","red","blue", "green")) 
+```
+Try box plots of price vs categorical variables, ignoring outliers. 
+```{r}
+boxplot(price~cut, , ylim=c(0,30000), main="Boxplot of Price by Cut")
+```
+```{r}
+boxplot(price~color, , ylim=c(0,30000), main="Boxplot of Price by Color")
+```
+```{r}
+boxplot(price~clarity, ylim=c(0,30000), main="Boxplot of Price by Clarity")
+```
+
+Look at price vs color, cut, and clarity
+```{r}
+ggplot(data, aes(x = color, y = price, color = cut, shape = clarity)) + 
+    geom_point(position = position_dodge(width = 0.4))
+```
+Look at price vs cut, color, and clarity
+```{r}
+ggplot(data, aes(x = cut, y = price, color = color, shape = clarity)) + 
+    geom_point(position = position_dodge(width = 0.4))
+```
+```
+Look at price vs color and clarity

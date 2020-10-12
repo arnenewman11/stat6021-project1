@@ -1,0 +1,95 @@
+---
+title: "stat_6021_project"
+author: "Khoi Tran"
+date: "10/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('dplyr')
+library('rpart')
+library('rpart.plot')
+library('tree')
+library('randomForest')
+library('ggplot2')
+
+diamonds <- read_csv('diamonds4.csv')
+```
+
+```{r}
+# cut	quality of the cut (Fair, Good, Very Good, Premium, Ideal)
+# color	diamond colour, from J (worst) to D (best)
+# clarity	a measurement of how clear the diamond is (I1 (worst), SI2, SI1, VS2, VS1, VVS2, VVS1, IF (best))
+
+# cleaning cut variable
+diamonds$cut <- diamonds$cut %>% 
+  as.factor() 
+levels(diamonds$cut) <- c('Good', 'Very Good', 
+                          'Ideal', 'Astor Ideal')
+
+# cleaning color variable
+diamonds$color <- diamonds$color %>% 
+  as.factor() 
+
+# cleaning clarity variable
+diamonds$clarity <- diamonds$clarity %>% 
+  as.factor() 
+levels(diamonds$clarity) <- c('I1', 'SI2', 'SI1', 'VS2', 
+                              'VS1', 'VVS2', 'VVS1', 'IF')
+
+# set a price limit on the diamonds we analyze
+# cut >$30,000(?)
+# diamonds above a certain value may have value b/c of non-quantifiable variables, e.g. historical, family value
+diamonds1 <- diamonds[which(diamonds$price < 30000), ]
+diamonds2 <- diamonds[which(diamonds$price < 10000), ]
+diamonds3 <- diamonds[which(diamonds$price < 5000), ]
+
+# should be an exponent <2, use Box-Cox
+diamonds1$carat2 <- diamonds1$carat^2
+```
+
+```{r}
+pairs(diamonds1)
+plot(x = diamonds1$carat, y = diamonds1$price)
+plot(x = diamonds1$carat2, y = diamonds1$price)
+plot(x = diamonds1$clarity, y = diamonds1$price)
+plot(x = diamonds1$cut, y = diamonds1$price)
+plot(x = diamonds1$color, y = diamonds1$price)
+```
+
+```{r}
+ggplot(diamonds1, aes(x = carat2, 
+                      y = price,
+                      color = color)) + 
+  geom_point() + 
+  geom_smooth()
+```
+
+```{r}
+lm(price ~ carat, data = diamonds1) %>% 
+  summary()
+lm(price ~ clarity, data = diamonds1) %>% 
+  summary()
+lm(price ~ carat * cut, data = diamonds1) %>% 
+  summary()
+lm(price ~ color, data = diamonds1) %>% 
+  summary()
+
+lm(price ~ carat * color, data = diamonds) %>% 
+  summary()
+lm(price ~ carat * clarity, data = diamonds) %>% 
+  summary()
+```
+
+```{r}
+lm(formula = price ~ carat, 
+   data = diamonds1) %>% 
+  summary()
+lm(formula = price ~ carat * clarity, 
+   data = diamonds1) %>% 
+  summary()
+lm(formula = price ~ carat * cut, 
+   data = diamonds1) %>% 
+  summary()
+```

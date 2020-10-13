@@ -1,0 +1,224 @@
+---
+title: "SLR Diamonds"
+author: "John Leraas"
+date: "10/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import Data
+data: full data set
+data_r: reduced data set including only y values below a certain threshold (threshold part of exploration)
+
+```{r}
+data <- read.csv("diamonds4.csv", header=TRUE)
+attach(data)
+names(data)
+summary(data)
+
+```
+
+## Simple Linear Regression
+
+Fit simple linear regression model with no transformatio
+
+```{r }
+results <- lm(price~carat)
+summary(results)
+
+plot(carat, price, xlab="carat", ylab = "Price $", main="Price vs. Carat")
+abline(results, col="red")
+```
+
+Clearly a nonlinear relationship exists. Explore exponential relationship: y^lambda = B0 + x*B1
+
+## Perform Box Cox Method
+
+```{r }
+library(MASS)
+boxcox(results)
+boxcox(results, lambda = seq(-0, .5, .005))
+```
+Assume lambda = 0.333 given plot
+
+## Perform appropriate transformation and replot
+
+
+```{r}
+price.t = price**(.3)
+results.t <- lm(price.t~carat)
+
+
+summary(results.t)
+
+plot(carat, price.t, xlab="carat", ylab = "Price^(1/3) $", main="Price^(.3) vs. Carat")
+abline(results.t, col="red")
+
+```
+
+## Replot Box-Cox to test
+
+```{r}
+boxcox(results.t)
+boxcox(results.t, lambda = seq(-1, 1.5, .01))
+
+```
+NOTE: I INIITIALLY USED THE VALUE LAMBDA = 1/3; HOWEVER WHEN I REFIT THE BOX COX PLOT, LAMBDA = 1 FELL OUTSIDE TEH 95% CONFIDENCE INTERVAL
+
+Settled on lambda = 0.3
+
+## Test linear regression assumptions:
+1) A linear relationship exists between response & predictor variable (done - see preceding scatterplot)
+2) The error terms have mean 0 (residual plot)
+3) The error terms have constant variance (residual plot)
+4) The error terms are uncorrelated (ACF Plot)
+5) The errors folow a normal distribution (QQ Plot)
+
+To start, create Residual Plot. If variance not constant, transform response (y). If mean of error terms not zero, transform predictor variable (x)
+
+```{r}
+plot(results.t$fitted.values, results.t$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+```
+Note: this still requires a y-transformation given that the variance does not appear constant (variance gets bigger as price increased)
+
+
+
+## Try another model: e^x (also tried 2^x, 10^x with similar results)
+
+```{r}
+price.log = log(price)
+results.log <- lm(price.log~carat)
+
+
+summary(results.log)
+
+plot(carat, price.log, xlab="carat", ylab = "ln(Price) $", main="ln(Price) $ vs. Carat")
+abline(results.log, col="red")
+```
+
+
+###################################################################################
+## STOP AND EVALUATE:
+y^0.3 = mx+b seems to be the best fit so far, however this does not meet normality assumptions.
+--> Try working with 'reduced' data set
+###################################################################################
+
+## Evaluate "Reduced" Data Set
+
+Start by plotting
+```{r}
+data_r <- data[which(data$price < 30000), ]
+summary(data_r)
+
+plot(carat, price, xlab="carat", ylab = "Price $", main="Price vs. Carat")
+points(data_r$carat, data_r$price, pch=2, col="red")
+
+```
+
+## Simple Linear Regression - Reduced dataset
+Perform simple linear regression on the reduced data set and plot
+
+```{r}
+detach(data)
+attach(data_r)
+results_r <- lm(price~carat)
+
+plot(carat, price, xlab="carat", ylab = "Price $", main="Price vs. Carat")
+abline(results_r, col="red")
+```
+
+Doesn't look linear, but plot Residual Plot for additional detail
+
+```{r}
+plot(results_r$fitted.values, results_r$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+```
+Variance not constant -> need to perform y transformation
+
+Looking at scatterplot, equation looks like an exponential y = c*x^l 
+Try Box Cox again... method
+1) Make Box Cox Plot
+2) Apply transformation
+3) Replot to check
+
+
+## Perform Box Cox Method
+
+```{r }
+boxcox(results_r)
+boxcox(results_r, lambda = seq(0, .5, .005))
+```
+Assume lambda = 0.275 given plot
+
+## Perform appropriate transformation and replot
+
+
+```{r}
+price.rt = price**(.275)
+results.rt <- lm(price.rt~carat)
+
+
+summary(results.rt)
+
+plot(carat, price.rt, xlab="carat", ylab = "Price^(0.15) $", main="Price^(0.15) vs. Carat - REDUCED")
+abline(results.rt, col="red")
+
+```
+Looks ok, though larger carat values don't seem to fit plot as well
+
+
+## Replot Box-Cox to test
+
+```{r}
+boxcox(results.rt)
+boxcox(results.rt, lambda = seq(-1, 2, .01))
+
+```
+Lambda = 1 falls within 95% confidence
+
+## Residual Plot
+
+```{r}
+plot(results.rt$fitted.values, results.rt$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+```
+
+## Try another model: e^x (also tried 2^x, 10^x with similar results)
+
+```{r}
+price_r.log = log(price)
+results_r.log <- lm(price_r.log~carat)
+
+
+summary(results_r.log)
+
+plot(carat, price_r.log, xlab="carat", ylab = "ln(Price) $", main="ln(Price) $ vs. Carat")
+abline(results_r.log, col="red")
+```
+Doesn't look great, but try plotting residuals
+
+
+## Residual Plot
+
+```{r}
+plot(results_r.log$fitted.values, results_r.log$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+```
+###################################################################################
+## STOP AND EVALUATE:
+Normality assumptions not met by y^lambda -> y' (x^1/lambda) or ln(y) -> y' (e^x) transformations
+This is true of full data set and 'reduced' data set
+I tried different ranges within the reduced data set (Price < 30k, 10k, 8k, 5k)
+-- The same trends persist. 
+---- y^lambda seems to provide the best fit, but right side (higher carats) actual values fall below predicted
+---- Never meet normality assumptions
+
+Potentially try MLR with y' = y^lambda
+lambda = ~.15 / ~.2 for smaller number of carats (x^4 - X^8) or y^1/3 (x^3) for full data set
+
+###################################################################################
+

@@ -217,8 +217,41 @@ I tried different ranges within the reduced data set (Price < 30k, 10k, 8k, 5k)
 ---- y^lambda seems to provide the best fit, but right side (higher carats) actual values fall below predicted
 ---- Never meet normality assumptions
 
-Potentially try MLR with y' = y^lambda
-lambda = ~.15 / ~.2 for smaller number of carats (x^4 - X^8) or y^1/3 (x^3) for full data set
-
 ###################################################################################
 
+Follow Xin's suggestion: ln(Price) vs. ln(Carat)
+
+```{r}
+detach(data_r)
+attach(data)
+
+price.log = log(price)
+carat.log = log(carat)
+results.loglog <- lm(price.log~carat.log)
+
+summary(results.loglog)
+
+plot(carat.log, price.log, xlab="ln(carat)", ylab = "ln(Price) $", main="ln(Price) $ vs. ln(Carat)")
+abline(results.loglog, col="red")
+```
+
+Plot looks good. Check linearity assumptions
+- Residual Plot
+- ACF Plot
+- QQ Plot
+
+```{r}
+#Residual Plot
+plot(results.loglog$fitted.values, results.loglog$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+
+#ACF Plot
+acf(results.loglog$residuals, main="ACF of Residuals")
+
+#QQ Plot
+qqnorm(results.loglog$residuals)
+qqline(results.loglog$residuals, col="red")
+```
+Residual Plot - a little unclear if mean = 0 for smallest values; variance of residuals potentially constant
+ACF Plot - not quite met (lag = 4, potentially 19)
+QQ - not met, but model can still be robust

@@ -1,0 +1,135 @@
+---
+title: "SLR Diamonds"
+author: "John Leraas"
+date: "10/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+```
+
+## Import Data
+data: full data set
+data_r: reduced data set including only y values below a certain threshold (threshold part of exploration)
+
+```{r}
+data <- read.csv("diamonds4.csv", header=TRUE)
+attach(data)
+names(data)
+summary(data)
+
+```
+
+
+## Test linear regression assumptions:
+1) A linear relationship exists between response & predictor variable
+2) The error terms have mean 0 (residual plot)
+3) The error terms have constant variance (residual plot)
+4) The error terms are uncorrelated (ACF Plot)
+5) The errors follow a normal distribution (QQ Plot)
+
+If variance not constant, transform response (y). If mean of error terms not zero, transform predictor variable (x)
+
+
+
+
+
+## Plot data 
+
+Fit simple linear regression model with no transformation and plot the data
+
+```{r }
+results <- lm(price~carat)
+
+plot(carat, price, xlab="carat", ylab = "Price $", main="Price vs. Carat")
+abline(results, col="red")
+
+plot(results$fitted.values, results$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+```
+
+Clearly a nonlinear relationship exists. Given that variance is not constant, start by ransforming y
+
+## Y Transformation
+Explore exponential relationship: y^lambda = B0 + x*B1.
+After exploring various values of lambda, we chose lambda = 0 resulting in the transformation y' = ln(y)
+
+Plot data and residual plot:
+
+```{r}
+price.log = log(price)
+results.log <- lm(price.log~carat)
+
+#Scatter Plot
+plot(carat, price.log, xlab="carat", ylab = "ln(Price) $", main="ln(Price) $ vs. Carat")
+abline(results.log, col="red")
+
+#Residual Plot
+plot(results.log$fitted.values, results.log$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+```
+
+Note: variance appears to be constant, though the mean is not zero so transform x.
+
+
+
+## x Transformation
+
+After trying different possibilities, we chose x' = ln(x)
+
+Plot data, residuals, ACF, and QQ
+
+```{r}
+carat.log = log(carat)
+results.loglog <- lm(price.log~carat.log)
+
+#Scatter Plot
+plot(carat.log, price.log, xlab="ln(carat)", ylab = "ln(Price) $", main="ln(Price) $ vs. ln(Carat)")
+abline(results.loglog, col="red")
+
+#Residual Plot
+plot(results.loglog$fitted.values, results.loglog$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+
+#ACF Plot
+acf(results.loglog$residuals, main="ACF of Residuals")
+
+#QQ Plot
+qqnorm(results.loglog$residuals)
+qqline(results.loglog$residuals, col="red")
+
+#Summary
+summary(results.loglog)
+anova(results.loglog)
+
+
+```
+Observations:
+-- Scatterplot & Residual Plots - look good. Some potential issues for small carat values, but overall good fit
+-- ACF - Doesn't quite meet assumption (see lag = 4), however overall very close
+-- QQ Plot - residuals do not fit a normal distribution, however model may still be robust
+
+
+
+## Box Cox check
+
+Note: while applying Box Cox to the above equation does not result in lambda = 1, it still fits the data reasonably well. Potentially explore easing signficance level.
+
+```{r}
+boxcox(results.loglog)
+boxcox(results, lambda = seq(-1, 2, .05))
+```
+
+
+
+
+
+
+
+
+
+
+
+

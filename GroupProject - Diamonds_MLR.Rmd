@@ -1,0 +1,195 @@
+---
+title: "STAT 6021 - Diamonds MLR Work"
+author: "Arne Newman"
+date: "10/16/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import Data
+data: full data set
+data_r: reduced data set including only y values below a certain threshold (threshold part of exploration)
+
+```{r}
+data <- read.csv("diamonds4.csv", header=TRUE)
+attach(data)
+names(data)
+summary(data)
+
+# Create a reduced subset of price <= $30,000
+data_r <- data[which(data$price <= 30000), ]
+
+```
+### Work on Clarity as Indicator Variable
+
+Check whether Clarity is being treated as a factor.
+
+```{r}
+# Check if it is being treated as numeric
+is.numeric(clarity) 
+##have R treat mfr as categorical
+clarity<-factor(clarity) 
+is.factor(clarity) 
+##check coding scheme
+contrasts(clarity)
+```
+## FLAG - CONSIDER GROUPING 
+
+### Full Data Basic MLR with Carats and Clarity, No Interaction
+First run multiple linear regressions (MLRs) for the full and reduced dataset using 
+carats and clarity, without interaction. 
+```{r}
+mlr_clarity <- lm(price~carat+clarity)
+summary(mlr_clarity)
+```
+Let's look at our regression assumptions. 
+
+```{r}
+#Residual Plot
+plot(mlr_clarity$fitted.values, mlr_clarity$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+
+#ACF Plot
+acf(mlr_clarity$residuals, main="ACF of Residuals")
+
+#QQ Plot
+qqnorm(mlr_clarity$residuals)
+qqline(mlr_clarity$residuals, col="red")
+```
+Residuals have a clear pattern with an increasing variance, the ACH plot doesn't pass the test, and the QQ plot is problematic. 
+
+### Reduced Data Basic MLR with Carats and Clarity, No Interaction
+Now let's try this on the reduced dataset, as it may be driven by outliers. 
+
+```{r}
+mlr_clarity_red <- lm(price~carat+clarity, data = data_r)
+summary(mlr_clarity_red)
+```
+
+The $R^2$ for the reduced set is much higher, at `r mlr_clarity_red$r.squared` compared to 
+`r mlr_clarity$r.squared` for the full dataset. Let's look at out regression assumptions 
+for the reduced dataset. 
+
+```{r}
+#Residual Plot
+plot(mlr_clarity_red$fitted.values, mlr_clarity_red$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+
+#ACF Plot
+acf(mlr_clarity_red$residuals, main="ACF of Residuals")
+
+#QQ Plot
+qqnorm(mlr_clarity_red$residuals)
+qqline(mlr_clarity_red$residuals, col="red")
+```
+This is better, but our assumptions are all still invalid based on the plots.Let's look for interaction
+Break the data into subsets for plotting
+```{r}
+##consider each region a subset
+r1<-subset(data,clarity=="IF") 
+r2<-subset(data,clarity=="SI1") 
+r3<-subset(data,clarity =="SI2") 
+r4<-subset(data,clarity=="VS1") 
+r5<-subset(data,clarity=="VS2") 
+r6<-subset(data,clarity =="VVS1")
+r7<-subset(data,clarity=="VVS2") 
+
+```
+
+Generate regression lines for each race
+```{r}
+##fit 3 separate regressions, one for each region
+reg1<-lm(price~carat,data=r1)
+reg2<-lm(price~carat,data=r2)
+reg3<-lm(price~carat,data=r3)
+reg4<-lm(price~carat,data=r4)
+reg5<-lm(price~carat,data=r5)
+reg6<-lm(price~carat,data=r6)
+reg7<-lm(price~carat,data=r7)
+```
+
+Create a scatterplot to view the data, with different symbols and colors for each race. 
+```{r}
+plot(carat, price, main="Price against carats, by Clarity")
+points(r1$carat,r1$price, pch=1, col="black") 
+points(r2$carat,r2$price, pch=2, col="red") 
+points(r3$carat,r3$price, pch=3, col="blue")
+points(r4$carat,r4$price, pch=4, col="green") 
+points(r5$carat,r5$price, pch=5, col="yellow")
+points(r6$carat,r6$price, pch=6, col="pink") 
+points(r7$carat,r7$price, pch=7, col="orange")
+abline(reg1,lty=1)
+abline(reg2,lty=2, col="red") 
+abline(reg3,lty=3, col="blue")
+abline(reg4,lty=1, col = "green")
+abline(reg5,lty=2, col="yellow") 
+abline(reg6,lty=3, col="pink")
+abline(reg7,lty=4, col="orange")
+legend("topleft", c('IF', 'SI1', 'SI2', 'VS1', 'VS2', 'VVS1', 'VVS2'), lty=c(1,2,3,4,5,6,7), pch=c(1,2,3,4,5,6,7), col=c("black","red","blue", "green", "yellow","pink","orange")) 
+```
+
+These slopes area all different, indicating an interaction effect. We thought that grouping the 
+clarity ratings with the same letters (e.g., VS1, VS2) into groups may be useful, but this
+graph does not visually support that grouping. 
+
+
+### Reduced Data Basic MLR with Carats and Clarity, No Interaction
+Now let's test clarity and cut on the reduced dataset, with interaction. 
+
+```{r}
+mlr_clarity_red_inter <- lm(price~carat*clarity, data = data_r)
+summary(mlr_clarity_red_inter)
+```
+The $R^2$ has increased compared to the model without interaction, at `r mlr_clarity_red_inter$r.squared` 
+compared to `r mlr_clarity_red$r.squared` for the reduced dataset without interaction. 
+
+Now let's revisit our regression assumptions for this model. 
+
+```{r}
+#Residual Plot
+plot(mlr_clarity_red_inter$fitted.values, mlr_clarity_red_inter$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+
+#ACF Plot
+acf(mlr_clarity_red_inter$residuals, main="ACF of Residuals")
+
+#QQ Plot
+qqnorm(mlr_clarity_red_inter$residuals)
+qqline(mlr_clarity_red_inter$residuals, col="red")
+```
+We see that mean error is not zero and variance is nonconstant. Let's try a transformation, starting
+by transforming the response to address the variance. With carat as a major driver, let's start 
+by testing the same transformation as worked for SLR, a log-log transformation - where we use the log of
+the response and carat, while leaving the indicator variables. 
+
+```{r}
+price_log <- log(price)
+carat_log <- log(carat)
+
+mlr_clarity_red_inter_log <- lm(price_log~carat_log*clarity)
+summary(mlr_clarity_red_inter_log)
+```
+Here we see an extremely high $R^2$, but the clarity terms do not look meaningful.
+Let's start by reviewing our regression assumptions.
+
+
+```{r}
+#Residual Plot
+plot(mlr_clarity_red_inter_log$fitted.values, mlr_clarity_red_inter_log$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+
+#ACF Plot
+acf(mlr_clarity_red_inter_log$residuals, main="ACF of Residuals")
+
+#QQ Plot
+qqnorm(mlr_clarity_red_inter_log$residuals)
+qqline(mlr_clarity_red_inter_log$residuals, col="red")
+```
+
+Our assumptions generally look good here... expand more. 
+
+## Test removal of interaction terms 
+

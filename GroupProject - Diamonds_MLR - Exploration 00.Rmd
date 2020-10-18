@@ -1,0 +1,137 @@
+---
+title: "Group Project MLR"
+author: "John Leraas"
+date: "10/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+```
+
+
+## Import Data
+data: full data set
+data_r: reduced data set including only y values below a certain threshold (threshold part of exploration)
+
+```{r}
+data <- read.csv("diamonds4.csv", header=TRUE)
+attach(data)
+names(data)
+summary(data)
+
+# Create a reduced subset of price <= $30,000
+data_r <- data[which(data$price <= 30000), ]
+
+```
+
+## Transform Data
+
+You can also embed plots, for example:
+
+```{r}
+price.log = log(price)
+carat.log = log(carat)
+results1 <- lm(price.log~carat.log)
+
+#Scatter Plot
+plot(carat.log, price.log, xlab="ln(carat)", ylab = "ln(Price) $", main="ln(Price) $ vs. ln(Carat)")
+abline(results1, col="red")
+
+#Add new columns for ln(price) and ln(carat)
+data["ln_price"] <- price.log
+data["ln_carat"] <- carat.log
+
+detach(data)
+attach(data)
+```
+## Make sure Factors are categorized appropriately, order levels
+
+```{r}
+cut<-factor(cut)
+clarity<-factor(clarity)
+color<-factor(color)
+is.factor(cut) 
+is.factor(clarity) 
+is.factor(color) 
+
+cut<-relevel(cut, ref = "Astor Ideal") 
+contrasts(cut)
+
+data$cut <- factor(data$cut, levels = c("Astor Ideal", "Good", "Very Good", "Ideal"))
+levels(data$cut)
+contrasts(cut)
+
+#X = "Astor Ideal","Good", "Very Good", "Ideal"
+#cut<-reorder(cut, X,levels = levels(cut))
+```
+
+## Plot Data
+ 
+```{r}
+a1<-subset(data,cut=="Ideal") 
+a2<-subset(data,cut=="Very Good") 
+a3<-subset(data,cut=="Good")
+a4<-subset(data,cut=="Astor Ideal")
+
+reg1<-lm(price.log~carat.log,data=a1)
+reg2<-lm(price.log~carat.log,data=a2)
+reg3<-lm(price.log~carat.log,data=a3)
+reg4<-lm(price.log~carat.log,data=a4)
+
+
+plot(ln_carat, ln_price, main="ln(Price) against ln(carat), by cut")
+points(a1$ln_carat,a1$ln_price, pch=2, col="red")
+points(a2$ln_carat,a2$ln_price, pch=12, col="blue") 
+points(a3$ln_carat,a3$ln_price, pch=22, col="yellow")
+points(a4$ln_carat,a4$ln_price, pch=32, col="green")
+abline(reg1,lty=1, col="red")
+abline(reg2,lty=2, col="blue") 
+abline(reg3,lty=3, col="yellow")
+abline(reg4,lty=4, col="green")
+legend("topleft", c("Ideal","Very Good","Good", "Astor Ideal"), lty=c(1,2,3, 4), pch=c(2,12,22, 32), col=c("red","blue","yellow", "green")) 
+
+reg1
+reg2
+reg3
+reg4
+results1
+
+
+```
+Slopes
+All 1.944
+Ideal 1.964
+Very Good 1.962
+Good 2.038
+Astor Ideal 1.892
+
+Intercepts
+All 8.521
+Ideal 8.600
+Very Good 8.420
+Good 8.378
+Astor Ideal 8.676
+
+
+
+## MLR
+
+```{r}
+mlr_cut <- lm(price.log~carat.log*cut)
+summary(mlr_cut)
+
+#Residual Plot
+plot(mlr_cut$fitted.values, mlr_cut$residuals, xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs. Fitted Vaues")
+abline(h=0, col="red")
+#ACF Plot
+acf(mlr_cut$residuals, main="ACF of Residuals")
+#QQ Plot
+qqnorm(mlr_cut$residuals)
+qqline(mlr_cut$residuals, col="red")
+
+```
+
+
+

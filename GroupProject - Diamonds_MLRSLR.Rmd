@@ -446,20 +446,5 @@ anova(lm16, lm18, lm21)
 anova(lm16, lm21)
 anova(lm18, lm21)
 
-# three predictor model is most significant
-```
-
-```{r}
-# ACF Plot
-acf(lm8$residuals, main = 'ACF of Residuals')
-acf(lm9$residuals, main = 'ACF of Residuals')
-acf(lm10$residuals, main = 'ACF of Residuals')
-
-# QQ Plot
-qqnorm(lm8$residuals)
-qqline(lm8$residuals, col = 'red')
-qqnorm(lm9$residuals)
-qqline(lm9$residuals, col = 'red')
-qqnorm(lm10$residuals)
-qqline(lm10$residuals, col = 'red')
+# three predictor model is most significant (lm21)
 ```

@@ -1,0 +1,465 @@
+---
+title: "stat_6021_project"
+author: "Khoi Tran (kt2np)"
+date: "10/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('dplyr')
+library('ggplot2')
+library('MASS')
+
+diamonds <- read_csv("R/diamonds4.csv")
+```
+
+```{r}
+# cut	quality of the cut (Fair, Good, Very Good, Premium, Ideal)
+# color	diamond colour, from J (worst) to D (best)
+# clarity	a measurement of how clear the diamond is (I1 (worst), SI2, SI1, VS2, VS1, VVS2, VVS1, IF (best))
+
+# cleaning cut variable
+diamonds$cut <- diamonds$cut %>%
+  as.factor()
+levels(diamonds$cut) <- c('Good', 'Very Good',
+                          'Ideal', 'Astor Ideal')
+
+# cleaning color variable
+diamonds$color <- diamonds$color %>%
+  as.factor()
+
+# cleaning clarity variable
+diamonds$clarity <- diamonds$clarity %>%
+  as.factor()
+levels(diamonds$clarity) <- c('I1', 'SI2', 'SI1', 'VS2',
+                              'VS1', 'VVS2', 'VVS1', 'IF')
+
+# log(price) variable
+diamonds$pricelog <- log(diamonds$price)
+
+# log(carat) variable
+diamonds$caratlog <- log(diamonds$carat)
+
+# set a price limit on the diamonds we analyze
+# cut >$30,000(?)
+# diamonds above a certain value may have value b/c of non-quantifiable variables, e.g. historical, family value
+diamonds1 <- diamonds[which(diamonds$price < 30000), ]
+diamonds2 <- diamonds[which(diamonds$price < 10000), ]
+diamonds3 <- diamonds[which(diamonds$price < 5000), ]
+```
+
+```{r}
+# regression with full dataset
+lm1 <- lm(price ~ carat, data = diamonds)
+
+plot(diamonds$carat, diamonds$price, 
+     xlab = 'Carat', ylab = 'Price $', 
+     main = 'Price vs. Carat')
+abline(lm1, col = 'red')
+
+plot(lm1$fitted.values, lm1$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+```
+
+```{r}
+# regression with Y transformation
+lm2 <- lm(pricelog ~ carat, data = diamonds)
+
+plot(diamonds$carat, diamonds$pricelog, 
+     xlab = 'Carat', ylab = 'ln(Price) $', 
+     main = 'ln(Price) vs. Carat')
+abline(lm2, col = 'red')
+
+plot(lm2$fitted.values, lm2$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+```
+
+```{r}
+# Y transformation with X transformation
+lm3 <- lm(pricelog ~ caratlog, data = diamonds)
+lm3 %>% 
+  summary()
+lm3 %>% 
+  anova()
+
+plot(diamonds$caratlog, diamonds$pricelog, 
+     xlab = 'ln(Carat)', ylab = 'ln(Price) $', 
+     main = 'ln(Price) vs. Carat')
+abline(lm3, col = 'red')
+
+plot(lm3$fitted.values, lm3$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+
+# ACF Plot
+acf(lm3$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm3$residuals)
+qqline(lm3$residuals, col = 'red')
+```
+
+```{r}
+# interaction models, two variables
+lm4 <- lm(pricelog ~ caratlog * color, data = diamonds)
+lm4 %>%
+  summary()
+lm4 %>%
+  anova()
+lm5 <- lm(pricelog ~ caratlog * clarity, data = diamonds)
+lm5 %>%
+  summary()
+lm5 %>%
+  anova()
+
+# ACF Plot
+acf(lm4$residuals, main = 'ACF of Residuals')
+acf(lm5$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm4$residuals)
+qqline(lm4$residuals, col = 'red')
+qqnorm(lm5$residuals)
+qqline(lm5$residuals, col = 'red')
+
+# regression plots
+ggplot(diamonds, aes(x = caratlog,
+                      y = pricelog,
+                      color = color)) +
+  geom_point() +
+  geom_smooth(method = 'lm', 
+              se = FALSE)
+ggplot(diamonds, aes(x = caratlog,
+                      y = pricelog,
+                      color = clarity)) +
+  geom_point() +
+  geom_smooth(method = 'lm', 
+              se = FALSE)
+```
+
+```{r}
+# multivariable linear models, two variables
+lm6 <- lm(pricelog ~ caratlog + color, data = diamonds)
+lm6 %>%
+  summary()
+lm6 %>%
+  anova()
+lm7 <- lm(pricelog ~ caratlog + clarity, data = diamonds)
+lm7 %>%
+  summary()
+lm7 %>%
+  anova()
+
+# ACF Plot
+acf(lm6$residuals, main = 'ACF of Residuals')
+acf(lm7$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm6$residuals)
+qqline(lm6$residuals, col = 'red')
+qqnorm(lm7$residuals)
+qqline(lm7$residuals, col = 'red')
+```
+
+```{r}
+# compare multilinear models w/ and w/o interactions
+# include partial F-tests
+
+# regressions of predictors ln(carat) and color vs ln(price)
+anova(lm6, lm4)
+
+# regressions of predictors ln(carat) and clarity vs ln(price)
+anova(lm7, lm5)
+
+# interaction models shown to be more significant
+```
+
+```{r}
+# interaction models, three variables
+lm8 <- lm(pricelog ~ caratlog + color + clarity, data = diamonds)
+lm8 %>%
+  summary()
+lm8 %>%
+  anova()
+lm9 <- lm(pricelog ~ caratlog * color + clarity, data = diamonds)
+lm9 %>%
+  summary()
+lm9 %>%
+  anova()
+lm10 <- lm(pricelog ~ caratlog * clarity + color, data = diamonds)
+lm10 %>%
+  summary()
+lm10 %>%
+  anova()
+
+# compare models
+anova(lm8, lm9, lm10)
+# partial F shows model with interaction between ln(carat) and color to be most significant
+anova(lm8, lm9)
+# partial F shows model with interaction between ln(carat) and color to be more significant
+anova(lm8, lm10)
+# partial F shows model with interaction between ln(carat) and clarity to be more significant
+anova(lm9, lm10)
+# partial F shows model with no interaction to be most significant
+
+# lm9 > lm10 > lm8 in significance
+# interaction models shown to be more significant
+
+# ACF Plot
+acf(lm8$residuals, main = 'ACF of Residuals')
+acf(lm9$residuals, main = 'ACF of Residuals')
+acf(lm10$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm8$residuals)
+qqline(lm8$residuals, col = 'red')
+qqnorm(lm9$residuals)
+qqline(lm9$residuals, col = 'red')
+qqnorm(lm10$residuals)
+qqline(lm10$residuals, col = 'red')
+```
+
+```{r}
+# using reduced datasets
+lm11 <- lm(pricelog ~ caratlog, data = diamonds1)
+lm11 %>% 
+  summary()
+lm11 %>% 
+  anova()
+lm12 <- lm(pricelog ~ caratlog, data = diamonds2)
+lm12 %>% 
+  summary()
+lm12 %>% 
+  anova()
+lm13 <- lm(pricelog ~ caratlog, data = diamonds3)
+lm13 %>% 
+  summary()
+lm13 %>% 
+  anova()
+
+plot(lm11$fitted.values, lm11$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+plot(lm12$fitted.values, lm12$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+plot(lm13$fitted.values, lm13$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+
+# ACF Plot
+acf(lm11$residuals, main = 'ACF of Residuals')
+acf(lm12$residuals, main = 'ACF of Residuals')
+acf(lm13$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm11$residuals)
+qqline(lm11$residuals, col = 'red')
+qqnorm(lm12$residuals)
+qqline(lm12$residuals, col = 'red')
+qqnorm(lm13$residuals)
+qqline(lm13$residuals, col = 'red')
+
+# best results from diamonds1 and diamonds2, which exclude diamonds above $30k and $10k
+```
+
+```{r}
+# interaction models, two variables
+lm14 <- lm(pricelog ~ caratlog * color, data = diamonds1)
+lm14 %>%
+  summary()
+lm14 %>%
+  anova()
+lm15 <- lm(pricelog ~ caratlog * clarity, data = diamonds1)
+lm15 %>%
+  summary()
+lm15 %>%
+  anova()
+lm16 <- lm(pricelog ~ caratlog * cut, data = diamonds1)
+lm16 %>%
+  summary()
+lm16 %>%
+  anova()
+
+# ACF Plot
+acf(lm14$residuals, main = 'ACF of Residuals')
+acf(lm15$residuals, main = 'ACF of Residuals')
+acf(lm16$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm14$residuals)
+qqline(lm14$residuals, col = 'red')
+qqnorm(lm15$residuals)
+qqline(lm15$residuals, col = 'red')
+qqnorm(lm16$residuals)
+qqline(lm16$residuals, col = 'red')
+
+# regression plots
+ggplot(diamonds1, aes(x = caratlog,
+                      y = pricelog,
+                      color = color)) +
+  geom_point() +
+  geom_smooth(method = 'lm', 
+              se = FALSE)
+ggplot(diamonds1, aes(x = caratlog,
+                      y = pricelog,
+                      color = clarity)) +
+  geom_point() +
+  geom_smooth(method = 'lm', 
+              se = FALSE)
+ggplot(diamonds1, aes(x = caratlog,
+                      y = pricelog,
+                      color = cut)) +
+  geom_point() +
+  geom_smooth(method = 'lm', 
+              se = FALSE)
+```
+
+```{r}
+# multivariable linear models, two variables
+lm17 <- lm(pricelog ~ caratlog + color, data = diamonds1)
+lm17 %>%
+  summary()
+lm17 %>%
+  anova()
+lm18 <- lm(pricelog ~ caratlog + clarity, data = diamonds1)
+lm18 %>%
+  summary()
+lm18 %>%
+  anova()
+lm19 <- lm(pricelog ~ caratlog + cut, data = diamonds1)
+lm19 %>%
+  summary()
+lm19 %>%
+  anova()
+
+# ACF Plot
+acf(lm17$residuals, main = 'ACF of Residuals')
+acf(lm18$residuals, main = 'ACF of Residuals')
+acf(lm19$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm17$residuals)
+qqline(lm17$residuals, col = 'red')
+qqnorm(lm18$residuals)
+qqline(lm18$residuals, col = 'red')
+qqnorm(lm19$residuals)
+qqline(lm19$residuals, col = 'red')
+```
+
+```{r}
+# compare multilinear models w/ and w/o interactions
+# include partial F-tests
+
+# regressions of predictors ln(carat) and color vs ln(price)
+anova(lm17, lm14)
+# interaction is better
+
+# regressions of predictors ln(carat) and clarity vs ln(price)
+anova(lm18, lm15)
+# interaction is worse
+
+# regressions of predictors ln(carat) and cut vs ln(price)
+anova(lm19, lm16)
+# interaction is worse
+
+# compare MLR
+anova(lm14, lm15, lm16)
+# clarity and cut are better variables to add
+
+# compare MLR w/ interaction variables
+anova(lm17, lm18, lm19)
+# clarity and cut are better variables to add
+
+# compare all
+anova(lm14, lm15, lm16, lm17, lm18, lm19)
+# clarity and cut are better variables to add, don't use color
+
+# interaction models shown to be more significant
+# use lm 15, 16 (interaction), lm 18, 19 (non-interaction) for partial F-tests
+```
+
+```{r}
+# interaction models, three variables
+lm20 <- lm(pricelog ~ caratlog + cut + clarity, data = diamonds1)
+lm20 %>%
+  summary()
+lm20 %>%
+  anova()
+lm21 <- lm(pricelog ~ caratlog * cut + clarity, data = diamonds1)
+lm21 %>%
+  summary()
+lm21 %>%
+  anova()
+lm22 <- lm(pricelog ~ caratlog * clarity + cut, data = diamonds1)
+lm22 %>%
+  summary()
+lm22 %>%
+  anova()
+
+# ACF Plot
+acf(lm20$residuals, main = 'ACF of Residuals')
+acf(lm21$residuals, main = 'ACF of Residuals')
+acf(lm22$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm20$residuals)
+qqline(lm20$residuals, col = 'red')
+qqnorm(lm21$residuals)
+qqline(lm21$residuals, col = 'red')
+qqnorm(lm22$residuals)
+qqline(lm22$residuals, col = 'red')
+```
+
+```{r}
+# compare models
+anova(lm20, lm21, lm22)
+# partial F shows model with interaction between ln(carat) and cut to be most significant
+anova(lm20, lm21)
+# partial F shows model with interaction between ln(carat) and cut to be more significant
+anova(lm20, lm22)
+# partial F shows model with no interaction to be most significant
+anova(lm21, lm22)
+# partial F shows model with interaction between ln(carat) and cut to be most significant
+
+# lm21 > lm20 > lm22 in significance
+# interaction models shown to be more significant
+```
+
+```{r}
+# compare models
+
+# lm21 has interaction between ln(carat) and cut, added clarity
+# lm16 has interaction between ln(carat) and cut
+# lm18 has no interaction, adds clarity to regression
+
+anova(lm16, lm18, lm21)
+anova(lm16, lm21)
+anova(lm18, lm21)
+
+# three predictor model is most significant
+```
+
+```{r}
+# ACF Plot
+acf(lm8$residuals, main = 'ACF of Residuals')
+acf(lm9$residuals, main = 'ACF of Residuals')
+acf(lm10$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm8$residuals)
+qqline(lm8$residuals, col = 'red')
+qqnorm(lm9$residuals)
+qqline(lm9$residuals, col = 'red')
+qqnorm(lm10$residuals)
+qqline(lm10$residuals, col = 'red')
+```

@@ -35,6 +35,8 @@ diamonds$clarity <- diamonds$clarity %>%
 levels(diamonds$clarity) <- c('I1', 'SI2', 'SI1', 'VS2',
                               'VS1', 'VVS2', 'VVS1', 'IF')
 
+pairs(diamonds)
+
 # log(price) variable
 diamonds$pricelog <- log(diamonds$price)
 
@@ -519,5 +521,7 @@ qqnorm(lm21$residuals)
 qqline(lm21$residuals, col = 'red')
 
 # compare to SLR
+lm11 %>% 
+  summary()
 anova(lm11, lm21)
 ```

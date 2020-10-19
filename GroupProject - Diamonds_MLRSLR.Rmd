@@ -5,7 +5,7 @@ date: "10/12/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library('dplyr')
 library('ggplot2')
@@ -50,7 +50,7 @@ diamonds3 <- diamonds[which(diamonds$price < 5000), ]
 ```
 
 ```{r}
-# regression with full dataset
+# SLR regression with full dataset
 lm1 <- lm(price ~ carat, data = diamonds)
 
 plot(diamonds$carat, diamonds$price, 
@@ -226,7 +226,7 @@ qqline(lm10$residuals, col = 'red')
 ```
 
 ```{r}
-# using reduced datasets
+## using reduced datasets
 lm11 <- lm(pricelog ~ caratlog, data = diamonds1)
 lm11 %>% 
   summary()
@@ -290,6 +290,19 @@ lm16 %>%
 lm16 %>%
   anova()
 
+plot(lm14$fitted.values, lm14$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+plot(lm15$fitted.values, lm15$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+plot(lm16$fitted.values, lm16$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+
 # ACF Plot
 acf(lm14$residuals, main = 'ACF of Residuals')
 acf(lm15$residuals, main = 'ACF of Residuals')
@@ -341,6 +354,19 @@ lm19 %>%
   summary()
 lm19 %>%
   anova()
+
+plot(lm17$fitted.values, lm17$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+plot(lm18$fitted.values, lm18$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+plot(lm19$fitted.values, lm19$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
 
 # ACF Plot
 acf(lm17$residuals, main = 'ACF of Residuals')
@@ -406,6 +432,19 @@ lm22 %>%
 lm22 %>%
   anova()
 
+plot(lm20$fitted.values, lm20$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+plot(lm21$fitted.values, lm21$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+plot(lm22$fitted.values, lm22$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+
 # ACF Plot
 acf(lm20$residuals, main = 'ACF of Residuals')
 acf(lm21$residuals, main = 'ACF of Residuals')
@@ -446,5 +485,39 @@ anova(lm16, lm18, lm21)
 anova(lm16, lm21)
 anova(lm18, lm21)
 
-# three predictor model is most significant (lm21)
+# three predictor model is most significant
+```
+
+```{r}
+# plot lm21
+lm21 %>% 
+  summary()
+lm21 %>% 
+  anova()
+ggplot(diamonds1, aes(x = caratlog,
+                      y = pricelog,
+                      color = clarity,
+                      linetype = cut)) +
+  geom_point() +
+  geom_smooth(method = 'lm', 
+              se = FALSE) + 
+  labs(title = 'Relationship Between Diamond Size and Price', 
+       subtitle = 'For diamonds below $30,000 in value', 
+       x = 'ln(Carat)', y = 'ln(Price)', 
+       color = 'Clarity', 'Cut')
+
+plot(lm21$fitted.values, lm21$residuals, 
+     xlab = 'Fitted Values', ylab = 'Residuals', 
+     main = 'Residuals vs. Fitted Vaues')
+abline(h = 0, col = 'red')
+
+# ACF Plot
+acf(lm21$residuals, main = 'ACF of Residuals')
+
+# QQ Plot
+qqnorm(lm21$residuals)
+qqline(lm21$residuals, col = 'red')
+
+# compare to SLR
+anova(lm11, lm21)
 ```
